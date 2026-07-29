@@ -8,7 +8,7 @@ const router = useRouter()
 onMounted(async () => {
   try {
     const session = await BFF.session()
-    if (session) router.push('/dashboard')
+    if (session) await router.push('/dashboard')
   } catch {
     // session check failed — stay on home page, let user sign in manually
   }

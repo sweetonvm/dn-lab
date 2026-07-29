@@ -4,7 +4,3 @@ export interface Tile {
   connectUrl: string | null
   connectedAccount: string | null
 }
-
-export interface DashboardResponse {
-  tiles: Tile[]
-}
