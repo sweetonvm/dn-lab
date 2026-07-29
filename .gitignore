@@ -5,6 +5,10 @@
 
 # dotenv files
 .env
+.env.*
+
+# Local development and secrets
+.vscode/
 
 # User-specific files
 *.rsuser
