@@ -71,7 +71,6 @@ public static class GithubAuthExtensions
                         )
                     );
 
-
                     using var request = new HttpRequestMessage(
                         HttpMethod.Get,
                         ctx.Options.UserInformationEndpoint);

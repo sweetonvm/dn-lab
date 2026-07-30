@@ -9,7 +9,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services
     .AddTokenDatabase()
     .AddCookieAuth(builder.Configuration)
-    .AddGithubOAuth(builder.Configuration);
+    .AddGithubOAuth(builder.Configuration)
+    .AddHttpClient<GithubTokenRevocationService>();
     
 if (builder.Environment.IsDevelopment())
 {
