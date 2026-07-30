@@ -28,6 +28,7 @@ public static class GithubAuthExtensions
                 options.UserInformationEndpoint = "https://api.github.com/user";
                 options.CallbackPath = BffRoutes.GithubCallback;
                 options.SaveTokens = false;
+                options.UsePkce = true;
 
                 options.Scope.Add("read:user");
 

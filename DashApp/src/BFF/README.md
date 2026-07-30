@@ -71,11 +71,11 @@ This is the reason the SPA can remain stateless from the perspective of the serv
 
 ### OpenID Connect authentication
 
-The Microsoft sign-in flow uses OpenID Connect with the `OpenIdConnectDefaults.AuthenticationScheme` scheme. The BFF requests `openid`, `profile`, `email`, and `offline_access` from Microsoft and stores the resulting access token in the server-side token database.
+The Microsoft sign-in flow uses OpenID Connect with the `OpenIdConnectDefaults.AuthenticationScheme` scheme. The BFF requests `openid`, `profile`, `email`, and `offline_access` from Microsoft and stores the resulting access token in the server-side token database. PKCE is enabled (`UsePkce = true`) for the authorization code flow.
 
 ### OAuth providers
 
-GitHub is integrated through `AddOAuth("github", ...)` in [Auth/Providers/Github/GithubAuthExtensions.cs](Auth/Providers/Github/GithubAuthExtensions.cs). The current implementation only supports the `github` provider for connection flows.
+GitHub is integrated through `AddOAuth("github", ...)` in [Auth/Providers/Github/GithubAuthExtensions.cs](Auth/Providers/Github/GithubAuthExtensions.cs). The current implementation only supports the `github` provider for connection flows. PKCE is enabled (`UsePkce = true`) for this flow as well; GitHub validates the S256 challenge/verifier pair on the token exchange.
 
 ### Authentication schemes used
 
@@ -183,6 +183,7 @@ The BFF launch profile uses HTTPS on `https://localhost:5000` via [Properties/la
 - Authentication: Required.
 - Request: `provider` path parameter.
 - Response: `204 No Content` on success, `401 Unauthorized` if no user identity is present.
+- For `github`, the stored access token is also revoked at GitHub (`DELETE /applications/{client_id}/token`) before the local record is removed. Revocation failure (provider error, network failure) is logged but does not block the local unlink — the user's ability to disconnect is not held hostage to a third-party outage. This means a token can, in rare failure cases, remain valid at GitHub after the BFF has locally forgotten it; it will still expire per GitHub's normal token lifetime.
 
 ### GET `/api/dashboard`
 
@@ -293,7 +294,7 @@ A durable store such as a database-backed token repository would be the expected
 - The callback flow uses the existing cookie session to confirm that the user is already authenticated.
 - The GitHub access token is stored server-side during the callback ticket creation event.
 - The connected account name is fetched from the GitHub user info endpoint and stored separately.
-- Unlinking removes both the token record and the connected account metadata.
+- Unlinking revokes the access token at GitHub, then removes both the token record and the connected account metadata locally. Revocation is best-effort: a failure is logged but does not prevent the local unlink from completing.
 
 ## Request flow
 
@@ -364,7 +365,19 @@ The current authorization strategy is intentionally simple:
 - protected endpoints require the authenticated user identity
 - provider-specific state is only exposed when the server-side token record exists
 
-CSRF is partially addressed by keeping the browser-facing interaction centered on same-origin POSTs and by relying on the cookie-based session context of the BFF. The current implementation does not introduce additional anti-CSRF middleware beyond the normal cookie-authentication flow.
+CSRF is partially addressed by keeping the browser-facing interaction centered on same-origin POSTs and by relying on the cookie-based session context of the BFF. The cookie authentication scheme currently uses ASP.NET Core's default cookie options, which means `SameSite=Lax` and `HttpOnly=true` are in effect by default — this provides baseline CSRF mitigation for cross-site POSTs, but is not the same as an explicit, reviewed configuration. The current implementation does not introduce anti-forgery tokens or additional anti-CSRF middleware.
+
+### Known limitations / production hardening backlog
+
+The items below are known, deliberate gaps in the current implementation. They're listed here rather than left implicit so a future contributor doesn't assume they're already covered:
+
+- **CSRF**: no anti-forgery tokens on state-changing endpoints (`/logout`, `/unlink/{provider}`); relying on default `SameSite=Lax` cookie behavior only.
+- **Cookie flags**: `HttpOnly`, `Secure`, and `SameSite` are not explicitly configured on the authentication cookie — currently inherited from framework defaults, which include `SecurePolicy=SameAsRequest` (not forced to `Always`). This should be explicitly hardened before any deployment behind a proxy or load balancer.
+- **Data Protection key ring**: keys used to protect stored tokens are not persisted to a shared, durable store (e.g. Redis, blob storage, database). This is fine for a single dev instance but means tokens become unreadable across restarts and cannot be shared across multiple instances.
+- **Security headers**: no CSP, HSTS, or frame-ancestors headers are currently set.
+- **Rate limiting**: no rate limiting on `/login`, `/connect/{provider}`, or `/unlink/{provider}`.
+- **CORS**: intentionally not configured, since the BFF and SPA are same-origin by design. This is a deliberate choice, not an oversight — introducing a permissive CORS policy would undermine the BFF's isolation purpose.
+- **Session/token expiry handling**: `TokenRecord.IsExpired` exists but there is no documented behavior for what happens when a stored token expires (silent failure vs. refresh vs. forced re-connect), despite `offline_access` being requested from Microsoft.
 
 ## Development notes
 
