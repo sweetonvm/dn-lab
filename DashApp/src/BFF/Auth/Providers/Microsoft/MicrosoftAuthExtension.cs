@@ -18,7 +18,7 @@ public static class MicrosoftAuthExtension
             .AddAuthentication(options =>
             {
                 options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = "microsoft";
             })
             .AddCookie(
                 CookieAuthenticationDefaults.AuthenticationScheme,
@@ -38,7 +38,7 @@ public static class MicrosoftAuthExtension
                     };
                 }
             )
-            .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
+            .AddOpenIdConnect("microsoft", options =>
             {
                 options.Authority =
                     "https://login.microsoftonline.com/common/v2.0";
@@ -69,7 +69,6 @@ public static class MicrosoftAuthExtension
                         {
                             ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
                             ctx.HandleResponse();
-                            return Task.CompletedTask;
                         }
 
                         return Task.CompletedTask;

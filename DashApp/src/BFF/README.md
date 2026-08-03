@@ -71,7 +71,9 @@ This is the reason the SPA can remain stateless from the perspective of the serv
 
 ### OpenID Connect authentication
 
-The Microsoft sign-in flow uses OpenID Connect with the `OpenIdConnectDefaults.AuthenticationScheme` scheme. The BFF requests `openid`, `profile`, `email`, and `offline_access` from Microsoft and stores the resulting access token in the server-side token database. PKCE is enabled (`UsePkce = true`) for the authorization code flow.
+The Microsoft sign-in flow uses OpenID Connect with the `microsoft` scheme. The BFF requests `openid`, `profile`,
+`email`, and `offline_access` from Microsoft and stores the resulting access token in the server-side token database.
+PKCE is enabled (`UsePkce = true`) for the authorization code flow.
 
 ### OAuth providers
 
