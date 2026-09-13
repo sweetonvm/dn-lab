@@ -1,0 +1,13 @@
+@WebApi_HostAddress = http://localhost:5285
+
+GET {{WebApi_HostAddress}}/api/orders?orderType=test
+Accept: application/json
+X-Correlation-ID: {{$guid}}
+X-Session-ID: {{$guid}}
+
+###
+
+GET {{WebApi_HostAddress}}/api/health
+Accept: application/json
+
+###
